@@ -1,0 +1,45 @@
+<body>
+
+  <button onclick="openSerial()">connect</button>
+  <button onclick="disconnectSerial()">disconnect</button>
+</body>
+
+<script>
+
+
+
+
+  async function openSerial() {
+
+    // Get all serial ports the user has previously granted the website access to.
+    const port = await navigator.serial.requestPort();
+
+    console.log(port);
+
+    await port.open({ baudRate: 115200 });
+
+    while (port.readable) {
+      const reader = port.readable.getReader();
+      try {
+        
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            console.log('*** canceled', error);
+            break;
+          }
+          console.log(value);
+        }
+
+      } catch (error) {
+        console.log('*** error', error);
+      } finally {
+        console.log('*** finished');
+        reader.releaseLock();
+      }
+    }
+  }
+
+  ;
+
+</script>
