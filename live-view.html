@@ -1,0 +1,83 @@
+<head>
+  <script src="js/filesaver.js"></script>
+  <script src="js/liveview.js"></script>
+  <script src="js/serial.js"></script>
+
+</head>
+
+<body>
+
+  <h1>Davis 6410 Live View</h1>
+
+  <canvas id='trace-view' width=1000 height=600 style='background-color: red;'></canvas>
+
+  <p>
+    <button onclick="connect()">connect</button>
+    <button onclick="disconnect()">disconnect</button>
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <button onclick="startSample()">sample</button>
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <button onclick="traceView.save()">save</button>
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <input type="file" id="file-selector">
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <button onclick="traceView.redraw({timebase:1});">1ms</button>
+    <button onclick="traceView.redraw({timebase:10});">10ms</button>
+    <button onclick="traceView.redraw({timebase:20});">20ms</button>
+    <button onclick="traceView.redraw({timebase:50});">50ms</button>
+    <button onclick="traceView.redraw({timebase:100});">100ms</button>
+    <button onclick="traceView.redraw({timebase:200});">200ms</button>
+    <button onclick="traceView.redraw({timebase:250});">250ms</button>
+    <button onclick="traceView.redraw({timebase:500});">500ms</button>
+  </p>
+
+  <script>
+
+    // Creat the serial connection manager.
+    // Data samples arrive view the serial port.
+    const serialConnection = new Serial();
+
+    // Draw the background view and grid.
+    const traceView = new TraceView('#trace-view');
+
+    // COnnect to the serial port and start collecting sample streams.
+    function connect() {
+      serialConnection.connect();
+    }
+
+    function startSample()
+    {
+      serialConnection.writeCommand('sample-channel-0\n');
+    }
+
+    // Disconnect from the serial port.
+    function disconnect() {
+      serialConnection.disconnect();
+    }
+
+    const fileSelector = document.getElementById('file-selector');
+    fileSelector.addEventListener('change', (event) => {
+      const fileList = event.target.files;
+      console.log(fileList);
+    });
+
+
+
+    // Create a test sample set.
+    const samples = [];
+    for (let i = 0; i < 24000; ++i)
+      samples.push(0.5 + 0.5 * Math.sin(2 * Math.PI * i / 24000));
+
+    console.log('done!');
+
+    // Draw the samples with 100ms per major division.
+    traceView.drawFrame();
+
+    traceView.setSamples(samples, 24000);
+    traceView.drawSamples();
+
+
+
+  </script>
+
+</body>
