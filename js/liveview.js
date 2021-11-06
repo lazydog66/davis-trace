@@ -28,10 +28,12 @@ class TraceView {
     this.viewHeight = this.canvasHeight - this.viewMargins * 2;
   }
 
+
   save() {
     let blob = new Blob(['hello world!'], {type: 'text/plain;charset=utf-8'});
     saveAs(blob, 'samples.txt');
   }
+
 
   // Set the horizontal timebase in milliseconds per major division for the
   // trace.
@@ -45,6 +47,7 @@ class TraceView {
     context.scale(1, -1);
   }
 
+
   // Redraw the current sample set.
   // OPtionally, set a new time base for the horizontal scale.
   redraw(options = {}) {
@@ -54,6 +57,7 @@ class TraceView {
     this.drawFrame();
     this.drawSamples();
   }
+
 
   setDrawingScales() {
     // Shift the drawing origin i by the margins, and use a normal y-axes
@@ -68,8 +72,9 @@ class TraceView {
         this.viewWidth / (this.majorDivisionsHrz * this.timebase);
 
     // The vertical scale is the number of pixels per unit value.
-    this.viewVrtScale = this.viewHeight;
+    this.viewVrtScale = this.viewHeight / 255;
   }
+
 
   // Draw the backgroudn view/
   drawFrame() {
@@ -132,6 +137,7 @@ class TraceView {
     this.context.stroke();
   }
 
+
   // Draw the contents of thecurrent sample buffer.
   drawSamples() {
     this.setDrawingScales();
@@ -145,7 +151,7 @@ class TraceView {
     let first = true;
     this.samples.forEach((sample, index) => {
       let x = index * 1000 / this.sampleRate * this.viewHrzScale;
-      let y = sample * this.viewVrtScale;  // 256 / 600;
+      let y = sample * this.viewVrtScale;
 
       if (first) {
         this.context.moveTo(x, y);
@@ -158,6 +164,7 @@ class TraceView {
     this.context.stroke();
   }
 
+
   // Draw a sample set.
   // Along with the samples, a timebase is supplied. This is the sample rate
   // that the samples were taken at.
@@ -165,4 +172,5 @@ class TraceView {
     this.samples = samples.slice();
     this.sampleRate = sampleRate;
   }
+
 }

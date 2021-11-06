@@ -169,11 +169,12 @@ bool adc::start(uint16_t size, uint8_t sub_samples_size, uint8_t pin)
     adc_pin_ = pin;
   }
 
-  samples_remaining_ = sample_set_size_;
+  sample_index_ = 0;
   sample_set_size_ = size;
+  samples_remaining_ = size * sub_samples_size;
 
-  sub_samples_index_ = 0;
   sub_samples_ = sub_samples_size;
+  sub_samples_index_ = sub_samples_size;
 
   sample_set_ready_ = false;
 
@@ -197,17 +198,18 @@ void adc::service()
   if (!analog_ready()) return;
 
   // If this isn't the last sample in the set then trigger another.
-  if (--samples_remaining_ == 0) analog_trigger(adc_pin_);
+  if (--samples_remaining_ != 0) analog_trigger(adc_pin_);
 
   // Read the adc value and update the sub sample value.
   sub_sample_accumulator_ += analog_read();
 
-  if (--sub_samples_) {
-    uint16_t value = sub_samples_ / sub_samples_index_;
-    samples_[sample_set_size_ - samples_remaining_ - 1] = value;
+  if (--sub_samples_index_ == 0) {
+    uint16_t value = sub_sample_accumulator_ / sub_samples_;
+    samples_[sample_index_++] = value;
+    sub_samples_index_ = sub_samples_;
   }
 
-  if (!samples_remaining_)
+  if (samples_remaining_ == 0)
   {
     sampling_ = false;
     sample_set_ready_ = true;

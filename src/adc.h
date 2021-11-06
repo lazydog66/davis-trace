@@ -66,6 +66,9 @@ private:
   // This will be true once  a sample set has been fully acquired.
   volatile bool sample_set_ready_ = false;
 
+  // COutns the number of samples taken.
+  uint16_t sample_index_ = 0;
+
   // This is the number of samples still to be collected durinage an acquisition.
   volatile uint16_t samples_remaining_ = 0;
 

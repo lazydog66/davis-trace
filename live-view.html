@@ -34,26 +34,72 @@
   <script>
 
     // Creat the serial connection manager.
-    // Data samples arrive view the serial port.
-    const serialConnection = new Serial();
+    // Data sampleos arrive view the serial port.
+    const serialConnection = new Serial(processFrameBuffer);
 
     // Draw the background view and grid.
     const traceView = new TraceView('#trace-view');
 
-    // COnnect to the serial port and start collecting sample streams.
+
+    // Cnnect to the serial port and start collecting sample streams.
     function connect() {
       serialConnection.connect();
     }
 
-    function startSample()
-    {
+
+    function startSample() {
       serialConnection.writeCommand('sample-channel-0\n');
     }
+
 
     // Disconnect from the serial port.
     function disconnect() {
       serialConnection.disconnect();
     }
+
+    // Process a frame data.
+    // The data is examined to see if it contains a new sample set. If it does,
+    // then the samples are extracted and plotted in the live view.
+    function processFrameBuffer(frameBuffer) {
+
+      const checkHeader = (buffer, i) =>
+        frameBuffer[i + 0] === 39 && frameBuffer[i + 1] === 39 &&
+        frameBuffer[i + 2] === 39 && frameBuffer[i + 3] === 36 &&
+        frameBuffer[i + 4] === 36 && frameBuffer[i + 5] === 36 &&
+        frameBuffer[i + 6] === 0 && frameBuffer[i + 7] === 255;
+
+      // A data frame consists of,
+      //    8 byte header
+      //    2 byte data length
+      //    n data bytes
+      //    2 byte data length
+      if (frameBuffer.length < 2) return frameBuffer;
+
+      // Look for the rame header.
+      for (let i = 0; i < frameBuffer.length - 8; ++i)
+        if (!checkHeader(frameBuffer,i))
+          frameBuffer.shift();
+        else {
+          // Found the start of a frame, so read the data size.
+          const dataSize = frameBuffer[i + 8] + frameBuffer[i + 9] * 256;
+
+          // Check if we have a complete frame.
+          if (frameBuffer.length >= 8 + dataSize) {
+            let samples = frameBuffer.slice(8, 8 + dataSize);
+            frameBuffer = frameBuffer.slice(8 + dataSize);
+
+            traceView.setSamples(samples, dataSize);
+            traceView.drawFrame();
+            traceView.drawSamples();
+          }
+
+          return frameBuffer;
+        }
+
+      // Data does not contain a frame or start of a frame.
+      return [];
+    }
+
 
     const fileSelector = document.getElementById('file-selector');
     fileSelector.addEventListener('change', (event) => {

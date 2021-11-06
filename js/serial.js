@@ -1,9 +1,16 @@
 class Serial {
 
-  constructor() {
+  constructor(readFn) {
+
+    // readFn is a callback which gets the serail data as it is read.
+    this.readFn = readFn;
+
     this.port = false;
     this.baudrate = 115200;
     this.stop = false;
+
+    // This is where the serial data is buffered as it arrives.
+    this.frameBuffer = [];
   }
 
   async connect(baudRate = 115200) {
@@ -22,6 +29,7 @@ class Serial {
 
       try {
         while (!this.stop) {
+
           const {value, done} = await reader.read();
 
           if (done) {
@@ -29,9 +37,13 @@ class Serial {
             break;
           }
 
-          console.log(value);
-          var str = String.fromCharCode.apply(null, value);
-          console.log(str);
+          // Append the data to the current frame buffer.
+          // The buffer is then passed on to the read callback. It will process
+          // the data buffer and return back a new frame buffer. For example, if the
+          // the frame buffer is consumed, the callback should return a new empty buffer.
+          const data = Array.from(value);
+          this.frameBuffer = this.frameBuffer.concat(data);
+          this.frameBuffer = this.readFn(this.frameBuffer);
         }
 
       } catch (error) {
@@ -56,26 +68,10 @@ class Serial {
     const writer = this.port.writable.getWriter();
     await writer.write(data);
 
-// /    return new TextDecoder("utf-8").decode(bufferValue);
-
-    // const textEncoder = new TextEncoderStream();
-    // const writableStreamClosed = textEncoder.readable.pipeTo(this.port.writable);
-    // const writer = textEncoder.writable.getWriter();
-
-    // await writer.write(command);
-
     console.log('>> wrote ' + command);
 
     // Allow the serial port to be closed later.
     writer.releaseLock();
-
-    // async disconnect() {
-    //   if (!this.port) return;
-
-    //   this.stop = true;
-
-    //   console.log('disconnected from serial port');
-    // }
   }
 }
 
