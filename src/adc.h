@@ -1,9 +1,11 @@
 #pragma once
 
+#include <Arduino.h>
+
 // This is the maximum size of the sample set.
 // A buffer of this size is allocated, so the size should be appropriate for
 // the particular Arduino the progra is running on.
-constexpr uint16_t k_max_sample_set_size = 1024 * 25;
+constexpr uint16_t k_max_sample_set_size = 10000;
 
 class adc
 {
@@ -67,20 +69,20 @@ private:
   volatile bool sample_set_ready_ = false;
 
   // COutns the number of samples taken.
-  uint16_t sample_index_ = 0;
+  volatile uint16_t sample_index_ = 0;
 
   // This is the number of samples still to be collected durinage an acquisition.
-  volatile uint16_t samples_remaining_ = 0;
+  volatile uint32_t samples_remaining_ = 0;
 
   // The numebr of sub samples that make up a sample.
-  uint8_t sub_samples_ = 0;
+  volatile uint8_t sub_samples_ = 0;
 
   // Counts the number of sub samples being taken during an acquisition.
-  uint8_t sub_samples_index_ = 0;
+  volatile uint8_t sub_samples_index_ = 0;
 
   // The sub samlpe accumulator.
   // Samples are created by averaging the sub samples.
-  uint16_t sub_sample_accumulator_ = 0;
+  volatile uint16_t sub_sample_accumulator_ = 0;
 
 
 };

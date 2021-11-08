@@ -7,20 +7,26 @@
 
 <body>
 
-  <h1>Davis 6410 Live View</h1>
-
-  <canvas id='trace-view' width=1000 height=600 style='background-color: red;'></canvas>
+  <h1>Davis 6410 Live View v0.0.1</h1>
 
   <p>
     <button onclick="connect()">connect</button>
     <button onclick="disconnect()">disconnect</button>
     <span>&nbsp;&nbsp;&nbsp;</span>
+    <input type="file" id="file-selector">
+    <button onclick="traceView.save()">save</button>
+
+  </p>
+  
+  <canvas id='trace-view' width=1000 height=600 style='background-color: red;'></canvas>
+
+  <p>
+    <span>&nbsp;&nbsp;&nbsp;</span>
     <button onclick="startSample()">sample</button>
     <span>&nbsp;&nbsp;&nbsp;</span>
-    <button onclick="traceView.save()">save</button>
     <span>&nbsp;&nbsp;&nbsp;</span>
-    <input type="file" id="file-selector">
     <span>&nbsp;&nbsp;&nbsp;</span>
+    <span>timebase</span>
     <button onclick="traceView.redraw({timebase:1});">1ms</button>
     <button onclick="traceView.redraw({timebase:10});">10ms</button>
     <button onclick="traceView.redraw({timebase:20});">20ms</button>
@@ -48,7 +54,7 @@
 
 
     function startSample() {
-      serialConnection.writeCommand('sample-channel-0\n');
+      serialConnection.writeCommand('sample-channel-2\n');
     }
 
 
