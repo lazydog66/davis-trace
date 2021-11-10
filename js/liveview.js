@@ -8,14 +8,15 @@ class TraceView {
     this.context = this.canvas.getContext('2d');
 
     // The sample set is cached.
-    // A sample set contains the actual samples plus other information, eg the sample rate.
+    // A sample set contains the actual samples plus other information, eg the
+    // sample rate.
     this.sampleSet = false;
 
     // The default timebase is 100ms per major division.
     this.setTimebase(100);
 
-    this.majorDivisionsHrz = 10;
-    this.majorDivisionsVrt = 6;
+    this.majorDivisionsHrz = 15;
+    this.majorDivisionsVrt = 5;
     this.minorDivisionsPerMajor = 5;
 
     //  Define the inset value in pixels of the actual display area.
@@ -30,8 +31,38 @@ class TraceView {
 
 
   save() {
-    let blob = new Blob(['hello world!'], {type: 'text/plain;charset=utf-8'});
-    saveAs(blob, 'samples.txt');
+    const json = JSON.stringify(this.sampleSet);
+    let blob = new Blob([json], {type: 'text/json;charset=utf-8'});
+
+    const filename = 'samples-' + this.sampleSet.timestampStr() + '.json';
+    saveAs(blob, filename);
+  }
+
+  load(fileList) {
+
+    console.log('load file');
+    console.log(fileList);
+    console.log('reading ' + fileList.item(0));
+
+    // Check if the file is an image.
+    // if (file.type && !file.type.startsWith('image/')) {
+    //   console.log('File is not an image.', file.type, file);
+    //   return;
+    // }
+
+    const reader = new FileReader();
+
+    reader.onloadend = (event) => {
+      console.log('samples loaded');
+      const samples = JSON.parse(event.target.result);
+      const sampleSet = new SampleSet(samples);
+      this.setSamples(sampleSet);
+      this.redraw();
+    };
+
+    reader.onerror = (ev) => console.log(ev);
+
+    reader.readAsText(fileList.item(0));
   }
 
 
@@ -159,7 +190,6 @@ class TraceView {
 
   // Draw the contents of thecurrent sample buffer.
   drawSamples() {
-
     if (!this.sampleSet) return;
 
     this.setDrawingScales();
