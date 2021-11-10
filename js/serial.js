@@ -6,7 +6,7 @@ class Serial {
     this.readFn = readFn;
 
     this.port = false;
-    this.baudrate = 115200;
+    this.baudrate = 500000;
     this.stop = false;
 
     // This is where the serial data is buffered as it arrives.
@@ -20,7 +20,7 @@ class Serial {
 
     console.log(this.port);
 
-    await this.port.open({baudRate: 115200});
+    await this.port.open({baudRate});
 
     this.stop = false;
 

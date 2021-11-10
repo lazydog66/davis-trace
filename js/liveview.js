@@ -8,8 +8,8 @@ class TraceView {
     this.context = this.canvas.getContext('2d');
 
     // The sample set is cached.
-    this.sampleSet = [];
-    this.sampleRate = 10000;
+    // A sample set contains the actual samples plus other information, eg the sample rate.
+    this.sampleSet = false;
 
     // The default timebase is 100ms per major division.
     this.setTimebase(100);
@@ -19,7 +19,7 @@ class TraceView {
     this.minorDivisionsPerMajor = 5;
 
     //  Define the inset value in pixels of the actual display area.
-    this.viewMargins = 20;
+    this.viewMargins = 40;
 
     // Define the dimensions of the display area.
     this.canvasHeight = this.canvas.height;
@@ -135,22 +135,46 @@ class TraceView {
     this.context.lineTo(this.viewWidth, 0);
     this.context.lineTo(this.viewWidth, this.viewHeight);
     this.context.stroke();
+
+    // Draaw the horizontal scale.
+    this.context.font = '12px sans-serif';
+    this.context.textAlign = 'center';
+
+    for (let i = 0; i <= this.majorDivisionsHrz; ++i) {
+      const x = i * this.viewWidth / this.majorDivisionsHrz;
+      const y = -8;
+
+      let label;
+
+      if (this.timebase < 200)
+        label = i * this.timebase + ' ms';
+      else
+        label = (i * this.timebase) / 1000 + ' s';
+
+      this.context.strokeText(label, x, y);
+      this.context.strokeText(label, x, y + this.viewHeight + 28);
+    }
   }
 
 
   // Draw the contents of thecurrent sample buffer.
   drawSamples() {
+
+    if (!this.sampleSet) return;
+
     this.setDrawingScales();
 
     this.context.beginPath();
 
-
     this.context.strokeStyle = 'yellow';
     this.context.lineWidth = 3;
 
+    const samples = this.sampleSet.getSamples();
+    const sampleRate = this.sampleSet.getSampleRate();
+
     let first = true;
-    this.samples.forEach((sample, index) => {
-      let x = index * 1000 / this.sampleRate * this.viewHrzScale;
+    samples.forEach((sample, index) => {
+      let x = index * 1000 / sampleRate * this.viewHrzScale;
       let y = sample * this.viewVrtScale;
 
       if (first) {
@@ -168,9 +192,7 @@ class TraceView {
   // Draw a sample set.
   // Along with the samples, a timebase is supplied. This is the sample rate
   // that the samples were taken at.
-  setSamples(samples, sampleRate) {
-    this.samples = samples.slice();
-    this.sampleRate = sampleRate;
+  setSamples(sampleSet) {
+    this.sampleSet = sampleSet;
   }
-
 }

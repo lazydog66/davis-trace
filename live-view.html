@@ -2,6 +2,7 @@
   <script src="js/filesaver.js"></script>
   <script src="js/liveview.js"></script>
   <script src="js/serial.js"></script>
+  <script src="js/sampleset.js"></script>
 
 </head>
 
@@ -15,9 +16,12 @@
     <span>&nbsp;&nbsp;&nbsp;</span>
     <input type="file" id="file-selector">
     <button onclick="traceView.save()">save</button>
-
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    <button onclick="test()">1 KHz sine</button>
   </p>
-  
+
   <canvas id='trace-view' width=1000 height=600 style='background-color: red;'></canvas>
 
   <p>
@@ -27,14 +31,18 @@
     <span>&nbsp;&nbsp;&nbsp;</span>
     <span>&nbsp;&nbsp;&nbsp;</span>
     <span>timebase</span>
-    <button onclick="traceView.redraw({timebase:1});">1ms</button>
-    <button onclick="traceView.redraw({timebase:10});">10ms</button>
-    <button onclick="traceView.redraw({timebase:20});">20ms</button>
-    <button onclick="traceView.redraw({timebase:50});">50ms</button>
-    <button onclick="traceView.redraw({timebase:100});">100ms</button>
-    <button onclick="traceView.redraw({timebase:200});">200ms</button>
-    <button onclick="traceView.redraw({timebase:250});">250ms</button>
-    <button onclick="traceView.redraw({timebase:500});">500ms</button>
+    <button onclick="traceView.redraw({timebase:0.1});">0.25 ms</button>
+    <button onclick="traceView.redraw({timebase:0.5});">0.5 ms</button>
+    <button onclick="traceView.redraw({timebase:1});">1 ms</button>
+    <button onclick="traceView.redraw({timebase:2});">2 ms</button>
+    <button onclick="traceView.redraw({timebase:5});">5 ms</button>
+    <button onclick="traceView.redraw({timebase:10});">10 ms</button>
+    <button onclick="traceView.redraw({timebase:20});">20 ms</button>
+    <button onclick="traceView.redraw({timebase:50});">50 ms</button>
+    <button onclick="traceView.redraw({timebase:100});">100 ms</button>
+    <button onclick="traceView.redraw({timebase:200});">200 ms</button>
+    <button onclick="traceView.redraw({timebase:250});">250 ms</button>
+    <button onclick="traceView.redraw({timebase:500});">500 ms</button>
   </p>
 
   <script>
@@ -47,14 +55,16 @@
     const traceView = new TraceView('#trace-view');
 
 
-    // Cnnect to the serial port and start collecting sample streams.
+    // Connect to the serial port and start collecting sample streams.
     function connect() {
       serialConnection.connect();
     }
 
 
     function startSample() {
-      serialConnection.writeCommand('sample-channel-2\n');
+      // Command is,
+      //    sample-<channel>-<sample-rate>-<sample-count>
+      serialConnection.writeCommand('sample-2-16075-500\n');
     }
 
 
@@ -63,11 +73,23 @@
       serialConnection.disconnect();
     }
 
+    function test() {
+      const samples = [];
+      for (let i = 0; i < 5000; ++i)
+        samples.push(128.0 + 127.0 * Math.sin(2.0 * Math.PI * i / 1000));
+
+      const sampleSet = new SampleSet({ samples, sampleRate: 1000 });
+      traceView.setSamples(sampleSet);
+      traceView.drawFrame();
+      traceView.drawSamples();
+    }
+
     // Process a frame data.
     // The data is examined to see if it contains a new sample set. If it does,
     // then the samples are extracted and plotted in the live view.
     function processFrameBuffer(frameBuffer) {
 
+      // This function checks if a buffer starts with the frame header.
       const checkHeader = (buffer, i) =>
         frameBuffer[i + 0] === 39 && frameBuffer[i + 1] === 39 &&
         frameBuffer[i + 2] === 39 && frameBuffer[i + 3] === 36 &&
@@ -76,25 +98,29 @@
 
       // A data frame consists of,
       //    8 byte header
+      //    4 byte sample rate
       //    2 byte data length
       //    n data bytes
-      //    2 byte data length
-      if (frameBuffer.length < 2) return frameBuffer;
+      if (frameBuffer.length < 14) return frameBuffer;
 
-      // Look for the rame header.
-      for (let i = 0; i < frameBuffer.length - 8; ++i)
-        if (!checkHeader(frameBuffer,i))
+      // Look for the frame header.
+      for (let i = 0; i < frameBuffer.length - 14; ++i)
+        if (!checkHeader(frameBuffer, i))
           frameBuffer.shift();
         else {
-          // Found the start of a frame, so read the data size.
-          const dataSize = frameBuffer[i + 8] + frameBuffer[i + 9] * 256;
+          // Found the start of a frame, so read the frame rate and data size.
+          const sampleRate = frameBuffer[i + 8] + frameBuffer[i + 9] * 256 + frameBuffer[i + 10] * 256 * 256 + frameBuffer[i + 11] * 256 * 256 * 256;
+          const dataSize = frameBuffer[i + 12] + frameBuffer[i + 13] * 256;
 
           // Check if we have a complete frame.
-          if (frameBuffer.length >= 8 + dataSize) {
-            let samples = frameBuffer.slice(8, 8 + dataSize);
-            frameBuffer = frameBuffer.slice(8 + dataSize);
+          if (frameBuffer.length >= 14 + dataSize) {
+            let samples = frameBuffer.slice(14, 14 + dataSize);
+            frameBuffer = frameBuffer.slice(14 + dataSize);
 
-            traceView.setSamples(samples, dataSize);
+            // Create a sample set from the data buffer.
+            const sampleSet = new SampleSet({ samples, sampleRate });
+
+            traceView.setSamples(sampleSet);
             traceView.drawFrame();
             traceView.drawSamples();
           }
@@ -114,18 +140,12 @@
     });
 
 
-
-    // Create a test sample set.
-    const samples = [];
-    for (let i = 0; i < 24000; ++i)
-      samples.push(0.5 + 0.5 * Math.sin(2 * Math.PI * i / 24000));
-
     console.log('done!');
 
     // Draw the samples with 100ms per major division.
     traceView.drawFrame();
 
-    traceView.setSamples(samples, 24000);
+    traceView.setSamples(new SampleSet);
     traceView.drawSamples();
 
 

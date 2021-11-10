@@ -2,7 +2,7 @@
 
 #include "adc.h"
 
-constexpr uint16_t k_frame_sample_points = 768 * 1;
+constexpr uint16_t k_frame_sample_points = 768 * 3;
 constexpr float k_frame_wave_length = k_frame_sample_points / 2;
 
 constexpr uint8_t k_board_led_pin = 0;
@@ -24,39 +24,45 @@ void led_flash(int n) {
   }
 }
 
-void send_data_frame(const uint8_t* data, unsigned int length) {
+void send_data_frame(const uint8_t* data, uint16_t data_length, uint32_t sample_rate) {
   // Each data frame consists of an
   //    8 byte header
+  //    4 sample rate
   //    2 byte data length
   //    n data bytes
-  //    2 byte data length
-  static uint8_t header[] = {39, 39, 39, 36, 36, 36, 0, 255};
+  static uint8_t header[] = { 39, 39, 39, 36, 36, 36, 0, 255 };
 
   // Send the header first.
-  uint16_t data_length = length;
   Serial.write(header, sizeof(header));
-  Serial.write((uint8_t*)&data_length, 8);
+  Serial.write((uint8_t*)&sample_rate, 4);
+  Serial.write((uint8_t*)&data_length, 2);
 
   // Now send the actual data.
   Serial.write(data, data_length);
 }
 
-void sample(int pin) {
+void sample(uint8_t channel, uint16_t sample_rate, uint16_t sample_count) {
+
+  // Bounds check on the desired sample set.
+  // Note, the sampling rate used is not guaranteed to be the exact value asked for.
+  uint16_t sub_samples = 32150 / sample_rate;
+  channel = min(max(0, channel), 7);
+  sample_count = min(sample_count, k_max_sample_set_size);
 
   // Start a new sample set.
   adc& sampler = adc::get();
 
-  if (sampler.start(k_frame_sample_points, 1, pin))
+  if (sampler.start(sample_count, sub_samples, channel))
   {  // Wait for it to finish.
-    while (!sampler.finished())
-      ;
-    led_flash(pin + 1);
+    while (!sampler.finished());
+    led_flash(1);
   }
 }
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(115200);
+  Serial.begin(115200 * 1);
+  //  Serial.begin(115200);
 
   analogReference(EXTERNAL);
 
@@ -69,10 +75,51 @@ void setup() {
   analogRead(A6);
   analogRead(A7);
 
-  // Test signal on pins 6 & 7 (timer 3).
+  // Test 490.196 Hz signal on pins 6 & 7 (timer 3).
+  //    pin 6 50% duty cycle
+  //    pin 8 25% duty cycle
   analogWrite(6, 128);
   analogWrite(7, 64);
+
+  Serial.println(String("OCR3A=") + String(OCR3A));
+  Serial.println(String("OCR3B=") + String(OCR3B));
+  Serial.println(String("TCCR3A=") + String(TCCR3A));
+  Serial.println(String("TCCR3B=") + String(TCCR3B));
+  Serial.println(String("TCCR3C=") + String(TCCR3C));
 }
+
+
+// Parse a sample command of the form,
+//    sample-<channel>-<sample-rate>-<sample-count>
+// Returns true if the command was recognised as a valid sample command.
+bool parse_sample_command(const String& str, uint8_t& channel, uint16_t& sample_rate, uint16_t& sample_count)
+{
+  if (!str.startsWith(F("sample-"))) return false;
+
+  // Keep the parameters part of the command string.
+  String parameters = str.substring(7);
+
+  // Get the channel number.
+  channel = parameters[0] - '0';
+  if (channel < 0 || channel > 7) return false;
+
+  if (parameters[1] != '-') return false;
+  parameters = parameters.substring(2);
+
+  // Get the sample rate.
+  sample_rate = parameters.toInt();
+  if (sample_rate == 0) return false;
+
+  parameters = parameters.substring(String(sample_rate).length());
+  if (parameters[0] != '-') return false;
+
+  parameters = parameters.substring(1);
+  sample_count = parameters.toInt();
+  if (sample_count == 0) return false;
+
+  return true;
+}
+
 
 void loop() {
   while (true) {
@@ -87,23 +134,19 @@ void loop() {
       }
     }
 
-    if (command == String("sample-channel-0"))
-      sample(0);
-    else if (command == String("sample-channel-1"))
-      sample(1);
-    else if (command == String("sample-channel-2"))
-      sample(2);
-    else if (command == String("sample-channel-3"))
-      sample(3);
-    else if (command == String("sample-channel-4"))
-      sample(4);
-    else if (command == String("sample-channel-5"))
-      sample(5);
-    else if (command == String("sample-channel-6"))
-      sample(6);
-    else if (command == String("sample-channel-7"))
-      sample(7);
 
-    send_data_frame(adc::get().samples(), adc::get().sample_set_size());
+    // Look for the sample command, format is,
+    //    sample-<channel>-<sample-rate>-<sample-count>
+    uint8_t channel;
+    uint16_t sample_rate;
+    uint16_t sample_count;
+
+    if (parse_sample_command(command, channel, sample_rate, sample_count))
+    {
+      sample(channel, sample_rate, sample_count);
+      send_data_frame(adc::get().samples(), adc::get().sample_set_size(), adc::get().sample_rate());
+    }
+    else
+      led_flash(10);
   }
 }

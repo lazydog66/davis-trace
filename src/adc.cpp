@@ -3,13 +3,18 @@
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
-// Setting a value of 1 here gives a timer 1 frequency of 50.00 KHz.
-constexpr int k_timer_1_comapre_to = 5;
+
+// Timer 1 is set to run slower than the adc. In this way, the sample
+// rate is determined by the running rate of timer 1. The adc runs at ~ 38 KHz.
+// A prescaler of 64 and ctc value of 7 gives a timer frequency of,
+//    16000000 / (64 * 8) = 31250 Hz
+// This is slower than the adc, so should be okay.
+constexpr int k_timer_1_comapre_to = 7;
 
 // This is the frequency that timer 1 is set to run at.
-constexpr float k_timer_1_frequency = 50000.f;
+constexpr uint32_t k_timer_1_frequency = 31250;
 
-// This value gdrives the adc rate at ~ 38.5 KHz, which is faster than timer1.
+// This value drives the adc at ~ 38.5 KHz, which is faster than timer1.
 constexpr uint8_t k_adc_prescaler = 32;
 
 // The currently active adc object.
@@ -92,10 +97,6 @@ static void init_adc_clock_prescaler(uint8_t value) {
   }
 }
 
-// The background task frequency is 31.250 KHz, which also sets the adc rate.
-constexpr uint16_t k_task_timer_value = 1;
-constexpr float k_adc_sampling_freq = 16e6 / (256.f * (k_task_timer_value + 1));
-
 // Initialise the adc task and timer.
 // The adc is driven directly by timer 1 interrupts.
 static void initialise_timer_and_adc() {
@@ -164,6 +165,7 @@ bool adc::start(uint16_t size, uint8_t sub_samples_size, uint8_t pin) {
   }
 
   sample_index_ = 0;
+  sample_rate_ = k_timer_1_frequency / sub_samples_size;
   sample_set_size_ = size;
   samples_remaining_ = size * sub_samples_size;
 
@@ -191,7 +193,7 @@ void adc::service() {
   if (!sampling_) return;
 
   // We're expecting a sample, so return if it's not ready yet.
-  if (!analog_ready()) return;
+  //if (!analog_ready()) return;
 
   // Read the adc value and update the sub sample value.
   sub_sample_accumulator_ += analog_read();

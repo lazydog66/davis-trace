@@ -19,7 +19,7 @@ public:
   }
 
   // Return the sampling frequency used for the current sample set.
-  float sampling_frequency() const { return sampling_frequency_; }
+  uint32_t sample_rate() const { return sample_rate_; }
 
   // Return the number of samples in the current sample set.
   uint16_t sample_set_size() const { return sample_set_size_; }
@@ -47,7 +47,7 @@ private:
   void stop_timer();
 
   // THe sampling frequency used for the current sample set.
-  float sampling_frequency_;
+  uint32_t sample_rate_ = 1000;
 
   // This is the adc pin to use for acquiring the samples.
   uint8_t adc_pin_ = 255;
