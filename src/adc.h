@@ -2,10 +2,13 @@
 
 #include <Arduino.h>
 
+// This is the maximum sampling rate.
+constexpr uint32_t k_max_sample_rate = 31250;
+
 // This is the maximum size of the sample set.
 // A buffer of this size is allocated, so the size should be appropriate for
 // the particular Arduino the progra is running on.
-constexpr uint16_t k_max_sample_set_size = 10000;
+constexpr uint16_t k_max_sample_set_size = 14000;
 
 class adc
 {
@@ -19,7 +22,7 @@ public:
   }
 
   // Return the sampling frequency used for the current sample set.
-  uint32_t sample_rate() const { return sample_rate_; }
+  uint16_t sample_rate() const { return sample_rate_; }
 
   // Return the number of samples in the current sample set.
   uint16_t sample_set_size() const { return sample_set_size_; }
@@ -47,7 +50,7 @@ private:
   void stop_timer();
 
   // THe sampling frequency used for the current sample set.
-  uint32_t sample_rate_ = 1000;
+  uint16_t sample_rate_ = 1000;
 
   // This is the adc pin to use for acquiring the samples.
   uint8_t adc_pin_ = 255;
@@ -57,10 +60,6 @@ private:
 
   // The sample set buffer.
   uint8_t samples_[k_max_sample_set_size];
-
-  // The adc sampling frequency is set determined by the frequency of
-  // of timer 1 and the sub samlping size.
-  float sample_frequency_ = 0.f;
 
   // This will be true if a sample set is currently being acquired.
   volatile bool sampling_ = false;

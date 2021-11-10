@@ -18,7 +18,42 @@
     <button onclick="traceView.save()">save</button>
     <span>&nbsp;&nbsp;&nbsp;</span>
     <span>&nbsp;&nbsp;&nbsp;</span>
+
+    sampling
+    <select name="sample-channel" id="sample-channel">
+      <option value="0">channel 0</option>
+      <option value="1">channel 1</option>
+      <option value="2" selected>channel 2</option>
+      <option value="3">channel 3</option>
+      <option value="4">channel 4</option>
+      <option value="5">channel 5</option>
+      <option value="6">channel 6</option>
+      <option value="7">channel 7</option>
+    </select>
+
+    <select name="sample-rate" id="sample-rate">
+      <option value="31250" selected>31250 Hz</option>
+      <option value="15625">15625 Hz</option>
+      <option value="6430">6420 Hz</option>
+      <option value="3215">3215 Hz</option>
+      <option value="1286">1286 Hz</option>
+      <option value="643">643 Hz</option>
+      <option value="50">50 Hz</option>
+    </select>
+
+    <select name="sample-count" id="sample-count">
+      <option value="14000">14000 samples</option>
+      <option value="10000">10000 samples</option>
+      <option value="5000">5000 samples</option>
+      <option value="2000">2000 samples</option>
+      <option value="1000" selected>1000 samples</option>
+      <option value="500">500 samples</option>
+    </select>
+
+
     <span>&nbsp;&nbsp;&nbsp;</span>
+    <span>&nbsp;&nbsp;&nbsp;</span>
+    test
     <button onclick="test()">1 KHz sine</button>
   </p>
 
@@ -62,9 +97,15 @@
 
 
     function startSample() {
+      // Get the sampling parameters.
+      const sampleChannel = parseInt(document.querySelector("#sample-channel").value);
+      const sampleRate = parseInt(document.querySelector("#sample-rate").value);
+      const sampleCount = parseInt(document.querySelector("#sample-count").value);
+
       // Command is,
       //    sample-<channel>-<sample-rate>-<sample-count>
-      serialConnection.writeCommand('sample-2-16075-500\n');
+      const command =  'sample-' + sampleChannel + '-' + sampleRate + '-' + sampleCount;
+      serialConnection.writeCommand(command + '\n');
     }
 
 

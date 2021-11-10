@@ -45,7 +45,7 @@ void sample(uint8_t channel, uint16_t sample_rate, uint16_t sample_count) {
 
   // Bounds check on the desired sample set.
   // Note, the sampling rate used is not guaranteed to be the exact value asked for.
-  uint16_t sub_samples = 32150 / sample_rate;
+  uint16_t sub_samples = k_max_sample_rate / sample_rate;
   channel = min(max(0, channel), 7);
   sample_count = min(sample_count, k_max_sample_set_size);
 
