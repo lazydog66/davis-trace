@@ -66,7 +66,7 @@
     <span>&nbsp;&nbsp;&nbsp;</span>
     <span>&nbsp;&nbsp;&nbsp;</span>
     <span>timebase</span>
-    <button onclick="traceView.redraw({timebase:0.1});">0.25 ms</button>
+    <button onclick="traceView.redraw({timebase:0.1});">0.1 ms</button>
     <button onclick="traceView.redraw({timebase:0.5});">0.5 ms</button>
     <button onclick="traceView.redraw({timebase:1});">1 ms</button>
     <button onclick="traceView.redraw({timebase:2});">2 ms</button>
@@ -78,6 +78,13 @@
     <button onclick="traceView.redraw({timebase:200});">200 ms</button>
     <button onclick="traceView.redraw({timebase:250});">250 ms</button>
     <button onclick="traceView.redraw({timebase:500});">500 ms</button>
+    <span>offset</span>
+    <button onclick="traceView.scroll(-10);"><<</button>
+    <button onclick="traceView.scroll(-1);"><</button>
+    <button onclick="traceView.setScroll(0);">0</button>
+    <button onclick="traceView.scroll(1);">></button>
+    <button onclick="traceView.scroll(10);">>></button>
+
   </p>
 
   <script>

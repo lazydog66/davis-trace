@@ -32,7 +32,7 @@ class TraceView {
 
   save() {
     const json = JSON.stringify(this.sampleSet);
-    let blob = new Blob([json], {type: 'text/json;charset=utf-8'});
+    let blob = new Blob([json], { type: 'text/json;charset=utf-8' });
 
     const filename = 'samples-' + this.sampleSet.timestampStr() + '.json';
     saveAs(blob, filename);
@@ -68,8 +68,9 @@ class TraceView {
 
   // Set the horizontal timebase in milliseconds per major division for the
   // trace.
-  setTimebase(ms) {
+  setTimebase(ms, offset = 0) {
     this.timebase = ms;
+    this.offset = offset ? offset : 0;
 
     // Shift the drawing origin in by the margins, and use a normal y-axes
     // direction.
@@ -79,10 +80,25 @@ class TraceView {
   }
 
 
+  // Add a delta to the horizontal offset and redraw the trace.
+  scroll(offset) {
+    this.offset += offset;
+    this.redraw();
+  }
+
+
+  // Set the horizontal offset and redraw the trace.
+  setScroll(offset) {
+    this.offset = offset;
+    this.redraw();
+  }
+
+
   // Redraw the current sample set.
   // OPtionally, set a new time base for the horizontal scale.
   redraw(options = {}) {
-    if (options.timebase) this.setTimebase(options.timebase);
+    if (options.timebase)
+      this.setTimebase(options.timebase, options.offset);
 
     this.setDrawingScales();
     this.drawFrame();
@@ -95,12 +111,12 @@ class TraceView {
     // direction.
     this.context.resetTransform();
     this.context.translate(
-        this.viewMargins, this.canvasHeight - this.viewMargins);
+      this.viewMargins, this.canvasHeight - this.viewMargins);
     this.context.scale(1, -1);
 
     // The horizontal scale is the number of pixels per millisecond.
     this.viewHrzScale =
-        this.viewWidth / (this.majorDivisionsHrz * this.timebase);
+      this.viewWidth / (this.majorDivisionsHrz * this.timebase);
 
     // The vertical scale is the number of pixels per unit value.
     this.viewVrtScale = this.viewHeight / 255;
@@ -146,13 +162,13 @@ class TraceView {
     for (let i = 0; i < this.majorDivisionsHrz; ++i) {
       this.context.moveTo(this.viewWidth * i / this.majorDivisionsHrz, 0);
       this.context.lineTo(
-          this.viewWidth * i / this.majorDivisionsHrz, this.viewHeight);
+        this.viewWidth * i / this.majorDivisionsHrz, this.viewHeight);
     }
 
     for (let i = 0; i < this.majorDivisionsVrt; ++i) {
       this.context.moveTo(0, this.viewHeight * i / this.majorDivisionsVrt);
       this.context.lineTo(
-          this.viewWidth, this.viewHeight * i / this.majorDivisionsVrt);
+        this.viewWidth, this.viewHeight * i / this.majorDivisionsVrt);
     }
 
     this.context.stroke();
@@ -178,9 +194,9 @@ class TraceView {
       let label;
 
       if (this.timebase < 200)
-        label = i * this.timebase + ' ms';
+        label = this.offset + i * this.timebase + ' ms';
       else
-        label = (i * this.timebase) / 1000 + ' s';
+        label = (this.offset + i * this.timebase) / 1000 + ' s';
 
       this.context.strokeText(label, x, y);
       this.context.strokeText(label, x, y + this.viewHeight + 28);
@@ -204,7 +220,7 @@ class TraceView {
 
     let first = true;
     samples.forEach((sample, index) => {
-      let x = index * 1000 / sampleRate * this.viewHrzScale;
+      let x = (index * 1000 / sampleRate  - this.offset) * this.viewHrzScale;
       let y = sample * this.viewVrtScale;
 
       if (first) {
